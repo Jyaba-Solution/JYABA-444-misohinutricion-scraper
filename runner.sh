@@ -1,0 +1,1 @@
+scrapy crawl misohinutricion -o  sample.csv
