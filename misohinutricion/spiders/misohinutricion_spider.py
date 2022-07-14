@@ -11,17 +11,18 @@ class MisohinutricionSpiderSpider(scrapy.Spider):
         for url in urls:
             if not url.startswith('https://www.misohinutricion.com'):
                 url = 'https://www.misohinutricion.com' + url
-            yield scrapy.Request(url, callback=self.parse_page)
+            yield scrapy.Request(url, callback=self.parse_page, dont_filter=True)
     
     def parse_page(self, response):
         product_list = response.xpath("//div[@class='category-products']")
         if product_list:
             if response.meta.get('next_page_checker', False):
-                with open('next_page_urls.txt', 'a') as f:
-                    f.write(response.url + '\n')
+                self.logger.info(f'Next page: {response.url}')
+                # with open('next_page_urls.txt', 'a') as f:
+                #     f.write(response.url + '\n')
             products = response.xpath("//div[@class='category-products']/ul/li/a/@href").extract()
             for product in products:
-                yield scrapy.Request(product, callback=self.parse_product)
+                yield scrapy.Request(product, callback=self.parse_product, dont_filter=True)
 
         next_page = response.xpath("//div[@class='pages']/ol/li/a[contains(@class,'i-next')]/@href").extract_first()
         categories_list = response.xpath("//div[contains(@class,'categories-list')]//li//a/@href").extract()
@@ -31,18 +32,18 @@ class MisohinutricionSpiderSpider(scrapy.Spider):
         # check if it's product page
         product_name = response.xpath('//div[@class="product-name"]').extract_first()
         if next_page:
-            open('next_page.txt', 'a').write(next_page + '\n')
+            #open('next_page.txt', 'a').write(next_page + '\n')
             yield scrapy.Request(next_page, callback=self.parse_page, dont_filter=True, meta={'next_page_checker': True})
         elif product_list:
             self.logger.info("Skipped page %s", response.url)
-            with open('skipped_pages.txt', 'a') as f:
-                f.write(response.url + '\n')
+            # with open('skipped_pages.txt', 'a') as f:
+            #     f.write(response.url + '\n')
         elif categories_list:
             # checking the categories_list 
             categories_list = response.xpath("//div[contains(@class,'categories-list')]//li//a/@href").extract()
             if categories_list:
                 for category in categories_list:
-                    yield scrapy.Request(category, callback=self.parse_page)
+                    yield scrapy.Request(category, callback=self.parse_page, dont_filter=True)
 
         elif product_name:
             # we need to either yeild here or again parse the call
@@ -50,10 +51,10 @@ class MisohinutricionSpiderSpider(scrapy.Spider):
         elif see_all_products:
             # we need to either yeild here or again parse the call
             for product in see_all_products:
-                yield scrapy.Request(product, callback=self.parse_page)
+                yield scrapy.Request(product, callback=self.parse_page, dont_filter=True)
         else:
             self.logger.info(f'No more pages to crawl for {response.url}')
-            open('crawled_urls.txt', 'a').write(response.url + '\n')
+            #open('crawled_urls.txt', 'a').write(response.url + '\n')
 
         # TODO find the next page
 
@@ -99,5 +100,4 @@ class MisohinutricionSpiderSpider(scrapy.Spider):
         except Exception as e:
             self.logger.info(f'Error parsing {response.url}')
             self.logger.info(e)
-            open('error_urls.txt', 'a').write(response.url + '\n')
-            breakpoint()
+            #open('error_urls.txt', 'a').write(response.url + '\n')
